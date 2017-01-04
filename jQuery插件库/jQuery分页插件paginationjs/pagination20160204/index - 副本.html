@@ -1,0 +1,31 @@
+
+<!DOCTYPE html>
+<html lang="cn-ZH">
+    <head>
+        <meta charset="UTF-8">
+        <title>Mss。-pagination</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" type="text/css" href="./style/pagination.css" media="screen">
+    </head>
+    <body>
+        <div class="wrapper">
+            <div class="eg">
+                <div class="M-box3"></div>
+            </div>
+            <script src="./js/jquery.min.js"></script>
+            <script src="./js/jquery.pagination.js"></script>
+            <script>
+                $(function(){
+                    $('.M-box3').pagination({
+                        pageCount:25,   //总页数
+                        jump:true,      //是否开启跳转到指定页数，值为boolean类型
+                        coping:true,    //是否开启首页和末页，值为boolean
+                        homePage:'首页',
+                        endPage:'末页',
+                        prevContent:'上页',
+                        nextContent:'下页'
+                    });
+                });
+            </script>
+    </body>
+</html>

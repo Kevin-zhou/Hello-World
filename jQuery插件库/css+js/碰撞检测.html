@@ -1,0 +1,249 @@
+﻿<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>碰撞检测-jq22.com</title>
+<script src="http://www.jq22.com/jquery/jquery-1.10.2.js"></script>
+<style>
+body {
+  color: #222;
+  background: #ededed;
+  font-family: 'Lato', Calibri, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.3;
+  text-align: justify;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+a {
+  color: #FF2948;
+  font-weight: 700;
+}
+
+canvas {
+  border: 1px solid silver;
+  background: white;
+}
+
+.method {
+  color: grey;
+}</style>
+</head>
+<body>
+<h1>Box Collision Detection</h1> using  Point collision Detection  pen</p>
+
+<canvas id="canvas"></canvas><script>
+document.body.addEventListener("keydown", function(e) {
+  keys[e.keyCode] = true;
+});
+document.body.addEventListener("keyup", function(e) {
+  keys[e.keyCode] = false;
+});
+keys = [];
+canvas = document.getElementById("canvas");
+var ctx = canvas.getContext('2d');
+W = canvas.width = 400;
+H = canvas.height = 400;
+var monde = {
+  taille: 32,
+  data: [
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 2],
+    [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 2],
+    [2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 2],
+    [2, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 2, 2, 1, 1, 1, 2],
+    [2, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 2, 1, 1, 1, 1, 2],
+    [2, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 2],
+    [2, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+    [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2],
+    [2, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2],
+    [2, 1, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2],
+    [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+  ],
+  force: {
+    x: 0,
+    y: .3
+  },
+};
+// entite
+var entite = function(x, y) {
+    this.pos = {
+      x: x,
+      y: y
+    };
+    this.vel = {
+      x: 0,
+      y: -2
+    };
+    this.size = {
+      x: 15,
+      y: 15
+    };
+    this.color = "#1aa5f0";
+    this.can_jump = true;
+    this.speed = 4;
+    this.rendu = function(parametres) {
+      this.dessiner();
+      this.update(parametres);
+    }
+    this.dessiner = function() {
+      ctx.fillStyle = this.color;
+      ctx.fillRect(this.pos.x, this.pos.y, this.size.x, this.size.y);
+    }
+    this.update = function(parametres) {
+      this.vel.x += parametres.force.x;
+      this.vel.y += parametres.force.y;
+      this.vel.x *= .85;
+      this.vel.y *= .98;
+      this.pos.x += this.vel.x;
+      this.pos.y += this.vel.y;
+    }
+    this.deplacement = function() {
+      if (keys[90] || keys[38]) {
+        if (this.can_jump) {
+          this.can_jump = false;
+          this.vel.y = -this.speed * 2;
+        }
+      }
+      if (keys[68] || keys[39]) {
+        // fleche droite
+        if (this.vel.x < this.speed) {
+          this.vel.x++;
+        }
+      }
+      if (keys[81] || keys[37]) {
+        // fleche gauche
+        if (this.vel.x > -this.speed) {
+          this.vel.x--;
+        }
+      }
+    }
+  }
+  // moteur
+var moteur = function() {
+  this.parametres = {
+    tableau: {
+      x: 0,
+      y: 0
+    },
+  };
+};
+moteur.prototype.chargerLeMonde = function(monde) {
+  // terrain 
+  this.parametres = monde;
+  this.taille = this.parametres.taille;
+  this.terrain = {};
+  this.terrain.data = this.parametres.data;
+  this.terrain.x = this.terrain.data.length;
+  this.terrain.y = this.terrain.data[0].length;
+  this.terrain.limites = {
+    x: this.terrain.x * this.parametres.taille,
+    y: this.terrain.y * this.parametres.taille
+  };
+  // joueur
+  this.joueur = new entite(50, 50);
+}
+moteur.prototype.infoTuile = function(x, y) {
+  var NewX = Math.round(x / this.parametres.taille);
+  var NewY = Math.round(y / this.parametres.taille);
+  //console.log(numeroTuile);
+  var tuile = {
+    clef: this.terrain.data[NewY][NewX],
+    x: NewX * this.parametres.taille,
+    y: NewY * this.parametres.taille
+  };
+  return tuile;
+}
+moteur.prototype.dessinerLeMonde = function() {
+  for (var j = 0; j < this.terrain.x; j++) {
+    for (var i = 0; i < this.terrain.y; i++) {
+      var tileId = this.terrain.data[j][i];
+      if (tileId > 1) {
+        ctx.strokeStyle = "silver";
+        ctx.strokeRect(i * this.parametres.taille - .5, j * this.parametres
+          .taille - .5, this.parametres.taille, this.parametres
+          .taille);
+      }
+    }
+  }
+};
+moteur.prototype.collisionMonde = function(entite) {
+  ctx.fillStyle = "red";
+  var transX = entite.pos.x + entite.vel.x;
+  var transY = entite.pos.y + entite.vel.y;
+  var demie = (this.parametres.taille / 2) - 1;
+  var facteur = {
+    x: entite.size.x - this.taille,
+    y: entite.size.y - this.taille,
+  };
+  ctx.fillRect(transX + entite.size.x / 2 - 1, transY + entite.size.y / 2 - 1, 2, 2);
+  var tuile = this.infoTuile(entite.pos.x, entite.pos.y);
+  // bas 
+  var bas1 = this.infoTuile(entite.pos.x - demie, transY + facteur.y + this.taille / 2);
+  var bas2 = this.infoTuile(entite.pos.x + demie + facteur.x, transY + facteur.y + this.taille / 2);
+  ctx.fillRect(entite.pos.x - demie.x + 1, transY + demie.y, 1, 2);
+  ctx.fillRect(entite.pos.x + demie.x - 1, transY + demie.y, 1, 2);
+  if (bas1 && bas2) {
+    if (bas1.clef > 1 || bas2.clef > 1) {
+      entite.vel.y *= -.5;
+      entite.pos.y = bas1.y - this.taille - facteur.y;
+      entite.pos.y = bas2.y - this.taille - facteur.y;
+      entite.can_jump = true;
+    }
+  }
+  // haut 
+  var haut1 = this.infoTuile(entite.pos.x - demie, transY - this.taille / 2);
+  var haut2 = this.infoTuile(entite.pos.x + demie + facteur.x, transY - this.taille / 2);
+  if (haut1 && haut2) {
+    if (haut1.clef > 1 || haut2.clef > 1) {
+      entite.vel.y *= -.1;
+      entite.pos.y = haut1.y + this.taille;
+      entite.pos.y = haut2.y + this.taille;
+    }
+  }
+  // gauche 
+  var gauche1 = this.infoTuile(transX - this.taille / 2, entite.pos.y - demie);
+  var gauche2 = this.infoTuile(transX - this.taille / 2, entite.pos.y + facteur.y + demie);
+  if (gauche1 && gauche2) {
+    if (gauche1.clef > 1 || gauche2.clef > 1) {
+      entite.vel.x *= -.1;
+      entite.pos.x = gauche1.x + this.taille;
+      entite.pos.x = gauche2.x + this.taille;
+    }
+  }
+  // droite 
+  var droite1 = this.infoTuile(transX + facteur.x + this.taille / 2, entite.pos.y - demie);
+  var droite2 = this.infoTuile(transX + facteur.x + this.taille / 2, entite.pos.y + facteur.y + demie);
+  if (droite1 && droite2) {
+    if (droite1.clef > 1 || droite2.clef > 1) {
+      entite.vel.x *= -.1;
+      entite.pos.x = droite1.x - entite.size.x;
+      entite.pos.x = droite2.x - entite.size.x;
+    }
+  }
+};
+moteur.prototype.rendu = function() {
+  ctx.save();
+  ctx.translate(-this.joueur.pos.x + W / 2, -this.joueur.pos.y + H / 2);
+  this.joueur.rendu(this.parametres);
+  this.joueur.deplacement();
+  this.collisionMonde(this.joueur);
+  this.dessinerLeMonde();
+  ctx.restore();
+}
+var collision = new moteur();
+collision.chargerLeMonde(monde, 0);
+ctx.setLineDash([5, 3]);
+update();
+
+function update() {
+  ctx.fillStyle = "#222";
+  ctx.fillRect(0, 0, W, H);
+  collision.rendu();
+  requestAnimationFrame(update);
+}</script>
+</body>
+</html>
